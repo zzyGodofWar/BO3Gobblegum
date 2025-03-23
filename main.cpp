@@ -1,4 +1,4 @@
-﻿#include <Windows.h>
+#include <Windows.h>
 #include <iostream>
 #include <string>
 #include <psapi.h>
@@ -74,11 +74,15 @@ uintptr_t FindStringTableAddress(HANDLE hProcess, uintptr_t startAddress)
             << L" | Type: " << mbi.Type
             << std::endl;*/
 
-        if (mbi.RegionSize == 0x29280000 && mbi.State == MEM_COMMIT && mbi.Protect == PAGE_READWRITE) {
+
+        if (mbi.RegionSize >= 0x20000000 && mbi.RegionSize <= 0x30000000
+            && mbi.State == MEM_COMMIT
+            && mbi.Protect == PAGE_READWRITE
+            && mbi.Type == MEM_PRIVATE) {
             char buffer[16] = {};
             SIZE_T read;
 
-            std::wcout << L"Maybe String Page Address: 0x" << std::hex << address;
+            std::wcout << L"Maybe String Page Address: 0x" << std::hex << address << std::endl;
 
             for (SIZE_T block = 0; block < mbi.RegionSize; block += 0x1000) {
                 address = (uintptr_t)((char*)mbi.BaseAddress + block);
@@ -89,7 +93,7 @@ uintptr_t FindStringTableAddress(HANDLE hProcess, uintptr_t startAddress)
                     if (ReadProcessMemory(hProcess, (char*)address + offset_bubblegum, buffer, 10, &read)
                         && !strcmp("bubblegum", buffer)) {
 
-                        //std::wcout << L"String Page Address: 0x" << std::hex << address;
+                        std::wcout << L"String Page Address: 0x" << std::hex << address << std::endl;
 
                         return address;
                         break;
@@ -231,6 +235,7 @@ int main()
     if (hProcess == NULL)
     {
         std::cerr << "Failed to open process. Error code: " << GetLastError() << std::endl;
+        system("pause");
         return 1;
     }
 
@@ -238,6 +243,7 @@ int main()
     if (!tableAddress) {
         std::cerr << "Failed to query string table."  << std::endl;
         CloseHandle(hProcess);
+        system("pause");
         return 1;
     }
 
